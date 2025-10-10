@@ -1,9 +1,13 @@
 package com.skyeshade.astruct.worldgen;
 
 import com.mojang.logging.LogUtils;
+import com.skyeshade.astruct.ALog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -11,6 +15,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
+import net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
 import org.slf4j.Logger;
 
@@ -21,12 +26,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public final class Planner {
-    private static final Logger LOGGER = LogUtils.getLogger();
+
 
     private final ServerLevel level;
     private final StructureDef def;
-    private final Holder<StructureTemplatePool> startPool; // resolved on main thread
-    private final String target;                            // connector target string
+    private final Holder<StructureTemplatePool> startPool;
+    private final String target;
     private final int cx, cz;
 
     public Planner(ServerLevel level, StructureDef def, int cx, int cz) {
@@ -35,7 +40,7 @@ public final class Planner {
         this.cx    = cx;
         this.cz    = cz;
 
-        // Resolve start pool from registry (MAIN thread)
+
         var pools = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL);
         this.startPool = pools.getHolder(ResourceKey.create(Registries.TEMPLATE_POOL, def.startPool()))
                 .orElseThrow(() -> new IllegalStateException("Missing template pool: " + def.startPool()));
@@ -43,18 +48,18 @@ public final class Planner {
     }
 
     private static @Nullable ResourceLocation templateIdFromElement(
-            net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement el
+            StructurePoolElement el
     ) {
-        var enc = net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement
-                .CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, el)
+        var enc = StructurePoolElement
+                .CODEC.encodeStart(NbtOps.INSTANCE, el)
                 .result();
-        if (enc.isPresent() && enc.get() instanceof net.minecraft.nbt.CompoundTag ct) {
-            if (ct.contains("element_type", net.minecraft.nbt.Tag.TAG_STRING)) {
-                // Only handle single_pool_element; skip features/empty/etc.
+        if (enc.isPresent() && enc.get() instanceof CompoundTag ct) {
+            if (ct.contains("element_type", Tag.TAG_STRING)) {
+
                 String type = ct.getString("element_type");
                 if (!"minecraft:single_pool_element".equals(type)) return null;
             }
-            if (ct.contains("location", net.minecraft.nbt.Tag.TAG_STRING)) {
+            if (ct.contains("location", Tag.TAG_STRING)) {
                 String loc = ct.getString("location");
                 if (!loc.isEmpty()) return ResourceLocation.parse(loc);
             }
@@ -66,21 +71,21 @@ public final class Planner {
     public void startAsync() {
         AstructWorldData.get(level).setPlanningCell(def.id(), cx, cz, true);
 
-        LOGGER.info("[Astruct/Planner] started async plan for {} cell[{},{}] (spacing={})",
+        ALog.debug("[Astruct/Planner] started async plan for {} cell[{},{}] (spacing={})",
                 def.id(), cx, cz, def.spacing());
 
         CompletableFuture
-                .supplyAsync(this::doExpandOffThread)                          // EXPAND off-thread
-                .thenAcceptAsync(this::finishOnMainThread, level.getServer())  // ENQUEUE on main
+                .supplyAsync(this::doExpandOffThread)
+                .thenAcceptAsync(this::finishOnMainThread, level.getServer())
                 .exceptionally(ex -> {
                     AstructWorldData.get(level).setPlanningCell(def.id(), cx, cz, false);
-                    LOGGER.error("[Astruct/Planner] planning failed for def={} cell[{},{}]", def.id(), cx, cz, ex);
+                    ALog.error("[Astruct/Planner] planning failed for def={} cell[{},{}]", def.id(), cx, cz, ex);
                     return null;
                 });
     }
 
 
-    /** Gen-Y resolver matching your JSON modes. */
+
     private int resolveGenY() {
         var g = def.genY();
         String mode = g == null || g.mode() == null ? "min_plus" : g.mode();
@@ -97,7 +102,7 @@ public final class Planner {
 
     private record ExpandResult(List<PoolElementStructurePiece> pieces, BlockPos center) {}
 
-    /** Off-thread: compute center + run jigsaw expansion. No SavedData writes here. */
+    /** Off-thread: compute center + run jigsaw expansion. */
     private ExpandResult doExpandOffThread() {
         final long t0 = System.nanoTime();
 
@@ -112,19 +117,19 @@ public final class Planner {
         int maxDist = def.softRadiusChunks() > 0 ? def.softRadiusChunks() * 16 : 128;
         maxDist     = Mth.clamp(maxDist, 64, 256);
 
-        LOGGER.info("[Astruct/Planner] expand: def={} cell[{},{}] center={} depth={} maxDist={} target={} startPool={}",
+        ALog.debug("[Astruct/Planner] expand: def={} cell[{},{}] center={} depth={} maxDist={} target={} startPool={}",
                 def.id(), cx, cz, center, depth, maxDist, def.connectorTarget(), def.startPool());
 
         List<PoolElementStructurePiece> pieces;
         try {
             pieces = JigsawExpand.expandFrom(level, startPool, def.connectorTarget(), center, depth, maxDist);
         } catch (Throwable t) {
-            LOGGER.error("[Astruct/Planner] expandFrom threw for def={} cell[{},{}]: {}", def.id(), cx, cz, t.toString(), t);
-            throw t; // handled by exceptionally(...)
+            ALog.error("[Astruct/Planner] expandFrom threw for def={} cell[{},{}]: {}", def.id(), cx, cz, t.toString(), t);
+            throw t;
         }
 
         long ms = (System.nanoTime() - t0) / 1_000_000L;
-        LOGGER.info("[Astruct/Planner] expand: def={} cell[{},{}] pieces={} in {} ms",
+        ALog.debug("[Astruct/Planner] expand: def={} cell[{},{}] pieces={} in {} ms",
                 def.id(), cx, cz, pieces.size(), ms);
 
         return new ExpandResult(pieces, center);
@@ -139,7 +144,7 @@ public final class Planner {
     private void finishOnMainThread(ExpandResult res) {
         int spacing = def.spacing();
 
-        LOGGER.info("[Astruct/Planner] finish: def={} cell[{},{}] pieces={} center={}",
+        ALog.debug("[Astruct/Planner] finish: def={} cell[{},{}] pieces={} center={}",
                 def.id(), cx, cz, res.pieces().size(), res.center());
 
 
@@ -151,7 +156,7 @@ public final class Planner {
         for (var p : res.pieces()) {
             var tplId = templateIdFromElement(p.getElement());
             if (tplId == null) {
-                LOGGER.warn("[Astruct/Planner] piece had no templateId; skipping.");
+                ALog.warn("[Astruct/Planner] piece had no templateId; skipping.");
                 continue;
             }
 
@@ -169,16 +174,16 @@ public final class Planner {
             pd.add(id, step);
             enq++;
 
-            // Wake immediately if any required chunk is already loaded
+
             boolean touchesLoaded = step.requiredChunks().stream()
                     .anyMatch(l -> level.hasChunk(ChunkPos.getX(l), ChunkPos.getZ(l)));
             if (touchesLoaded) {
-                LOGGER.info("[Astruct/Planner] wake placement now (touches loaded) tpl={} origin={}", tplId, p.getPosition());
+                ALog.debug("[Astruct/Planner] wake placement now (touches loaded) tpl={} origin={}", tplId, p.getPosition());
                 PlacerEvents.requestPlacementNow(level, id, step);
             }
         }
 
-        LOGGER.info("[Astruct/Planner] finish: def={} cell[{},{}] enqueued={} (touchesLoaded may have fired)",
+        ALog.debug("[Astruct/Planner] finish: def={} cell[{},{}] enqueued={} (touchesLoaded may have fired)",
                 def.id(), cx, cz, enq);
 
         AstructWorldData wd = AstructWorldData.get(level);

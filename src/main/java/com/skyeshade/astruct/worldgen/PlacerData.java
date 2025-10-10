@@ -123,7 +123,7 @@ public final class PlacerData extends SavedData {
         return d;
     }
 
-    // ---------- API ----------
+
     public List<UUID> stepsForChunk(long chunkLong) {
         return byChunk.getOrDefault(chunkLong, List.of());
     }

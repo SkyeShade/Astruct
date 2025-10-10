@@ -2,6 +2,8 @@ package com.skyeshade.astruct.worldgen;
 
 
 
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.skyeshade.astruct.Astruct;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -46,11 +48,11 @@ public enum AstructDefs {
     }
 
 
-    public static com.mojang.brigadier.suggestion.SuggestionsBuilder suggestIds(
-            com.mojang.brigadier.suggestion.SuggestionsBuilder b) {
+    public static SuggestionsBuilder suggestIds(
+            SuggestionsBuilder b) {
         for (ResourceLocation id : INSTANCE.ids()) {
             String s = id.toString();
-            if (com.mojang.brigadier.StringReader.isQuotedStringStart(b.getInput().isEmpty() ? '"' : b.getInput().charAt(0))) {
+            if (StringReader.isQuotedStringStart(b.getInput().isEmpty() ? '"' : b.getInput().charAt(0))) {
 
                 b.suggest(s);
             } else if (s.indexOf(':') < 0) {

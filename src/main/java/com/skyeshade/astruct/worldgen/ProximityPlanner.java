@@ -1,23 +1,26 @@
 package com.skyeshade.astruct.worldgen;
 
+import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @EventBusSubscriber(modid = Astruct.MODID)
 public final class ProximityPlanner {
-    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
 
-
-    private static final java.util.Map<ResourceLocation, Integer> COOLDOWN_TICKS = new java.util.HashMap<>();
+    private static final Map<ResourceLocation, Integer> COOLDOWN_TICKS = new HashMap<>();
     private static final int SCAN_INTERVAL_TICKS = 60;
     private static final int DEF_COOLDOWN_TICKS  = 60;
 
     @SubscribeEvent
-    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
+    public static void onServerTick(ServerTickEvent.Post e) {
         var server = e.getServer();
         if ((server.getTickCount() % SCAN_INTERVAL_TICKS) != 0) return;
 
@@ -75,7 +78,7 @@ public final class ProximityPlanner {
                             wd.setPlanningCell(def.id(), cx, cz, true);
                             StructureManager.planStructure(sl, def.id(), cx, cz);
 
-                            LOGGER.info("[Proximity] scheduled plan def={} cell[{},{}] center={} player={}",
+                            ALog.debug("[Proximity] scheduled plan def={} cell[{},{}] center={} player={}",
                                     def.id(), cx, cz, center, p.getGameProfile().getName());
 
                             scheduledAny = true;
@@ -89,7 +92,7 @@ public final class ProximityPlanner {
                 COOLDOWN_TICKS.put(def.id(), DEF_COOLDOWN_TICKS);
             } else if (!sawTargetLevel) {
                 COOLDOWN_TICKS.put(def.id(), DEF_COOLDOWN_TICKS * 4);
-                LOGGER.debug("[Proximity] target dimension {} not loaded for def {}; skipping",
+                ALog.debug("[Proximity] target dimension {} not loaded for def {}; skipping",
                         def.dimension().location(), def.id());
             } else {
                 COOLDOWN_TICKS.put(def.id(), DEF_COOLDOWN_TICKS);

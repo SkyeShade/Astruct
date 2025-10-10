@@ -1,26 +1,27 @@
 package com.skyeshade.astruct.worldgen;
 
 import com.mojang.logging.LogUtils;
+import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import org.slf4j.Logger;
 @EventBusSubscriber(modid = Astruct.MODID)
 public final class Preplanner {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     @SubscribeEvent
-    public static void onServerStarted(net.neoforged.neoforge.event.server.ServerStartedEvent e) {
+    public static void onServerStarted(ServerStartedEvent e) {
         var server = e.getServer();
 
 
         for (StructureDef def : AstructDefs.INSTANCE.all()) {
             ServerLevel level = server.getLevel(def.dimension());
             if (level == null) {
-                LOGGER.debug("[Astruct/Preplanner] skip {}; dimension {} not loaded", def.id(), def.dimension().location());
+                ALog.debug("[Astruct/Preplanner] skip {}; dimension {} not loaded", def.id(), def.dimension().location());
                 continue;
             }
 
@@ -37,7 +38,7 @@ public final class Preplanner {
 
             AstructWorldData.get(level).ensureCentersAround(level, def, spawn, radius, y);
 
-            LOGGER.info("[Astruct/Preplanner] Seeded centers for {} (dim={}, spacing={}, y={})",
+            ALog.debug("[Astruct/Preplanner] Seeded centers for {} (dim={}, spacing={}, y={})",
                     def.id(), def.dimension().location(), def.spacing(), y);
         }
 

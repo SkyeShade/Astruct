@@ -8,10 +8,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+
+import java.util.Collections;
+import java.util.Map;
 
 
 public final class AstructWorldData extends SavedData {
@@ -165,13 +169,13 @@ public final class AstructWorldData extends SavedData {
 
         CompoundTag plannedRoot = new CompoundTag();
         plannedCells.forEach((structureId, set) -> plannedRoot.put(structureId.toString(),
-                new net.minecraft.nbt.LongArrayTag(set.toLongArray())));
+                new LongArrayTag(set.toLongArray())));
         tag.put("plannedCellsByStructure", plannedRoot);
 
         return tag;
     }
 
-    public java.util.Map<ResourceLocation, Long2ObjectOpenHashMap<BlockPos>> centersView() {
-        return java.util.Collections.unmodifiableMap(centersByStructure);
+    public Map<ResourceLocation, Long2ObjectOpenHashMap<BlockPos>> centersView() {
+        return Collections.unmodifiableMap(centersByStructure);
     }
 }

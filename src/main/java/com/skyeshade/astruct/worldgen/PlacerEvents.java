@@ -2,8 +2,10 @@
 package com.skyeshade.astruct.worldgen;
 
 import com.mojang.logging.LogUtils;
+import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
+import com.skyeshade.astruct.Config;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -23,8 +25,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 @EventBusSubscriber(modid = Astruct.MODID)
 public final class PlacerEvents {
-    private static final Logger LOGGER = LogUtils.getLogger();
-    private static final int MAX_PLACEMENTS_PER_TICK = 10;
+
+    private static final int MAX_PLACEMENTS_PER_TICK = Config.MAX_PLACEMENTS_PER_TICK;
 
 
     private record Pending(ResourceKey<Level> dim, UUID id) {}
@@ -50,12 +52,12 @@ public final class PlacerEvents {
         var ids = data.stepsForChunk(cp.toLong());
         if (ids.isEmpty()) return;
 
-        LOGGER.info("[Placer] chunkLoad {} -> steps touching: {}", cp, ids.size());
+        ALog.debug("[Placer] chunkLoad {} -> steps touching: {}", cp, ids.size());
         for (UUID id : ids) {
             if (data.isRealized(id)) continue;
             data.get(id).ifPresent(step -> {
                 boolean ready = allChunksLoaded(level, step.requiredChunks());
-                LOGGER.info("[Placer] step={} ready={} origin={} reqChunks={}",
+                ALog.debug("[Placer] step={} ready={} origin={} reqChunks={}",
                         id, ready, step.origin(), step.requiredChunks().size());
                 if (ready) {
                     String k = key(level.dimension(), id);
@@ -118,7 +120,7 @@ public final class PlacerEvents {
 
         int budget = MAX_PLACEMENTS_PER_TICK;
         if (budget > 0 && !PENDING.isEmpty()) {
-            LOGGER.info("[Astruct/Placer] draining queue size={} (budget={})", PENDING.size(), budget);
+            ALog.debug("[Astruct/Placer] draining queue size={} (budget={})", PENDING.size(), budget);
         }
         while (budget-- > 0 && !PENDING.isEmpty()) {
             Pending p = PENDING.pollFirst();
@@ -126,7 +128,7 @@ public final class PlacerEvents {
             try {
                 processOne(e.getServer(), p);
             } catch (Throwable t) {
-                LOGGER.error("[Astruct/Placer] placement task failed for id={} dim={}", p.id, p.dim.location(), t);
+                ALog.warn("[Astruct/Placer] placement task failed for id={} dim={}", p.id, p.dim.location(), t);
             }
         }
     }
@@ -166,7 +168,7 @@ public final class PlacerEvents {
             data.markRealized(p.id());
         } else {
 
-            LOGGER.warn("[Astruct/Placer] FAILED place step={} (dim={}); will wait for future readiness",
+            ALog.warn("[Astruct/Placer] FAILED place step={} (dim={}); will wait for future readiness",
                     p.id(), p.dim().location());
         }
     }
