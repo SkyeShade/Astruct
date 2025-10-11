@@ -31,7 +31,7 @@ public final class Planner {
     private final ServerLevel level;
     private final StructureDef def;
     private final Holder<StructureTemplatePool> startPool;
-    private final String target;
+
     private final int cx, cz;
 
     public Planner(ServerLevel level, StructureDef def, int cx, int cz) {
@@ -44,7 +44,7 @@ public final class Planner {
         var pools = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL);
         this.startPool = pools.getHolder(ResourceKey.create(Registries.TEMPLATE_POOL, def.startPool()))
                 .orElseThrow(() -> new IllegalStateException("Missing template pool: " + def.startPool()));
-        this.target = def.connectorTarget();
+
     }
 
     private static @Nullable ResourceLocation templateIdFromElement(
@@ -117,12 +117,12 @@ public final class Planner {
         int maxDist = def.softRadiusChunks() > 0 ? def.softRadiusChunks() * 16 : 128;
         maxDist     = Mth.clamp(maxDist, 64, 256);
 
-        ALog.debug("[Astruct/Planner] expand: def={} cell[{},{}] center={} depth={} maxDist={} target={} startPool={}",
-                def.id(), cx, cz, center, depth, maxDist, def.connectorTarget(), def.startPool());
+        ALog.debug("[Astruct/Planner] expand: def={} cell[{},{}] center={} depth={} maxDist={} startPool={}",
+                def.id(), cx, cz, center, depth, maxDist, def.startPool());
 
         List<PoolElementStructurePiece> pieces;
         try {
-            pieces = JigsawExpand.expandFrom(level, startPool, def.connectorTarget(), center, depth, maxDist);
+            pieces = JigsawExpand.expandFrom(level, startPool, center, depth, maxDist);
         } catch (Throwable t) {
             ALog.error("[Astruct/Planner] expandFrom threw for def={} cell[{},{}]: {}", def.id(), cx, cz, t.toString(), t);
             throw t;

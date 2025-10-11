@@ -27,7 +27,6 @@ public final class JigsawExpand {
     public static List<PoolElementStructurePiece> expandFrom(
             ServerLevel level,
             Holder<StructureTemplatePool> startPool,
-            String connectorTargetIgnored,
             BlockPos startPos,
             int maxDepth,
             int maxDistanceFromCenter

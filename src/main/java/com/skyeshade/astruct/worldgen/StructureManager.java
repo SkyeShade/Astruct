@@ -21,8 +21,8 @@ public final class StructureManager {
 
         new Planner(level, def, 0, 0).startAsync();
 
-        ALog.debug("Astruct: planning {} in {} (cell[0,0], start={}, target={})",
-                defId, level.dimension().location(), def.startPool(), def.connectorTarget());
+        ALog.debug("Astruct: planning {} in {} (cell[0,0], start={})",
+                defId, level.dimension().location(), def.startPool());
     }
 
     /** Plan for a specific grid cell. */
@@ -35,7 +35,7 @@ public final class StructureManager {
 
         new Planner(level, def, cx, cz).startAsync();
 
-        ALog.debug("Astruct: planning {} in {} for cell[{},{}] (start={}, target={})",
-                defId, level.dimension().location(), cx, cz, def.startPool(), def.connectorTarget());
+        ALog.debug("Astruct: planning {} in {} for cell[{},{}] (start={})",
+                defId, level.dimension().location(), cx, cz, def.startPool());
     }
 }
