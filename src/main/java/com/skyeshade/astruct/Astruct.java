@@ -22,14 +22,12 @@ public class Astruct {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public Astruct(IEventBus modEventBus, ModContainer modContainer) {
-        modEventBus.addListener(this::commonSetup);
+
 
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
-    private void commonSetup(FMLCommonSetupEvent event) {
-    }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
