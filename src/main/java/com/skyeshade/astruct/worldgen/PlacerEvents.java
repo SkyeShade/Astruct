@@ -1,7 +1,6 @@
 
 package com.skyeshade.astruct.worldgen;
 
-import com.mojang.logging.LogUtils;
 import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
@@ -14,16 +13,15 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.templatesystem.JigsawReplacementProcessor;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.level.ChunkEvent;
-import net.neoforged.neoforge.event.level.LevelEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import org.slf4j.Logger;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.ChunkEvent;
+import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-@EventBusSubscriber(modid = Astruct.MODID)
+@Mod.EventBusSubscriber(modid = Astruct.MODID)
 public final class PlacerEvents {
 
     private static final int MAX_PLACEMENTS_PER_TICK = Config.MAX_PLACEMENTS_PER_TICK;
@@ -87,8 +85,10 @@ public final class PlacerEvents {
     }
 
     @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post e) {
-
+    public static void onServerTick(TickEvent.ServerTickEvent e) {
+        if(e.phase == TickEvent.Phase.START) {
+            return;
+        }
         final int SWEEP_LIMIT = 64;
         for (ServerLevel sl : e.getServer().getAllLevels()) {
 

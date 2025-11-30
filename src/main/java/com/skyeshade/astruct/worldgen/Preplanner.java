@@ -1,16 +1,15 @@
 package com.skyeshade.astruct.worldgen;
 
-import com.mojang.logging.LogUtils;
 import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import org.slf4j.Logger;
-@EventBusSubscriber(modid = Astruct.MODID)
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+@Mod.EventBusSubscriber(modid = Astruct.MODID)
 public final class Preplanner {
 
     @SubscribeEvent

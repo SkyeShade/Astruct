@@ -20,12 +20,12 @@ public final class StructurePlanData extends SavedData {
 
     public static StructurePlanData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
-                new Factory<>(StructurePlanData::new, StructurePlanData::load), NAME);
+                StructurePlanData::load, StructurePlanData::new, NAME);
     }
 
     public StructurePlanData() {}
 
-    public static StructurePlanData load(CompoundTag tag, HolderLookup.Provider provider) {
+    public static StructurePlanData load(CompoundTag tag) {
         StructurePlanData d = new StructurePlanData();
         ListTag list = tag.getList("plans", Tag.TAG_COMPOUND);
         for (Tag t : list) {
@@ -39,7 +39,7 @@ public final class StructurePlanData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+    public CompoundTag save(CompoundTag tag) {
         ListTag list = new ListTag();
         for (var entry : plans.entrySet()) {
             CompoundTag e = new CompoundTag();

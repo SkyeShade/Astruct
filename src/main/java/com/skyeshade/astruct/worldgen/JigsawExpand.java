@@ -10,11 +10,8 @@ import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-import net.minecraft.world.level.levelgen.structure.pools.DimensionPadding;
 import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
-import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasLookup;
-import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,19 +51,17 @@ public final class JigsawExpand {
                 validBiome
         );
 
-        Optional<Structure.GenerationStub> stubOpt = JigsawPlacement.addPieces(
-                ctx,
-                startPool,
-                Optional.empty(),
-                Math.max(1, maxDepth),
-                startPos,
-                false,
-                Optional.empty(),
-                Math.max(0, maxDistanceFromCenter),
-                PoolAliasLookup.EMPTY,
-                DimensionPadding.ZERO,
-                LiquidSettings.IGNORE_WATERLOGGING
-        );
+        Optional<Structure.GenerationStub> stubOpt = JigsawPlacement
+                .addPieces(
+                        ctx,
+                        startPool,
+                        Optional.empty(),
+                        Math.max(1, maxDepth),
+                        startPos,
+                        false,
+                        Optional.empty(),
+                        Math.max(0, maxDistanceFromCenter)
+                );
 
         var out = new ArrayList<PoolElementStructurePiece>();
         if (stubOpt.isEmpty()) return out;

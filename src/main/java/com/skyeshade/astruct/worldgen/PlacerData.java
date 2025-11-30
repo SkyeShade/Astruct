@@ -5,7 +5,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongTag;
@@ -15,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 public final class PlacerData extends SavedData {
@@ -31,7 +31,8 @@ public final class PlacerData extends SavedData {
 
     public static PlacerData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
-                new Factory<>(PlacerData::new, PlacerData::load),
+                PlacerData::load,
+                PlacerData::new,
                 NAME
         );
     }
@@ -48,7 +49,7 @@ public final class PlacerData extends SavedData {
 
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
 
         ListTag list = new ListTag();
         for (var e : steps.entrySet()) {
@@ -85,7 +86,7 @@ public final class PlacerData extends SavedData {
         return tag;
     }
 
-    public static PlacerData load(CompoundTag tag, HolderLookup.Provider provider) {
+    public static PlacerData load(CompoundTag tag) {
         PlacerData d = new PlacerData();
 
 

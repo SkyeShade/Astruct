@@ -5,7 +5,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
@@ -13,6 +12,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Map;
@@ -34,7 +34,8 @@ public final class AstructWorldData extends SavedData {
 
     public static AstructWorldData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
-                new Factory<>(AstructWorldData::new, (tag, prov) -> AstructWorldData.load(tag)),
+                AstructWorldData::load,
+                AstructWorldData::new,
                 NAME
         );
     }
@@ -147,7 +148,7 @@ public final class AstructWorldData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+    public @NotNull CompoundTag save(CompoundTag tag) {
 
         CompoundTag centersRoot = new CompoundTag();
         centersByStructure.forEach((structureId, map) -> {

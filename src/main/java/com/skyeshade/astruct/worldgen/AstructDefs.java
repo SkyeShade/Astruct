@@ -1,22 +1,19 @@
 package com.skyeshade.astruct.worldgen;
 
-
-
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.skyeshade.astruct.Astruct;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-
-@EventBusSubscriber(modid = Astruct.MODID)
+@Mod.EventBusSubscriber(modid = Astruct.MODID)
 public enum AstructDefs {
     INSTANCE;
 

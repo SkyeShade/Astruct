@@ -5,14 +5,14 @@ import com.skyeshade.astruct.Astruct;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@EventBusSubscriber(modid = Astruct.MODID)
+@Mod.EventBusSubscriber(modid = Astruct.MODID)
 public final class ProximityPlanner {
 
     private static final Map<ResourceLocation, Integer> COOLDOWN_TICKS = new HashMap<>();
@@ -20,7 +20,10 @@ public final class ProximityPlanner {
     private static final int DEF_COOLDOWN_TICKS  = 60;
 
     @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post e) {
+    public static void onServerTick(TickEvent.ServerTickEvent e) {
+        if(e.phase == TickEvent.Phase.START) {
+            return;
+        }
         var server = e.getServer();
         if ((server.getTickCount() % SCAN_INTERVAL_TICKS) != 0) return;
 
