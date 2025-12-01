@@ -3,12 +3,16 @@ package com.skyeshade.astruct.worldgen;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.material.MapColor;
 
 import java.util.Arrays;
@@ -17,6 +21,7 @@ import java.util.List;
 public record StructureDef(
         ResourceLocation id,
         ResourceKey<Level> dimension,
+        HolderSet<Biome> biomes,
         ResourceLocation startPool,
         ResourceLocation fallbackPool,
         int softRadiusChunks,
@@ -76,6 +81,7 @@ public record StructureDef(
     public static final Codec<StructureDef> CODEC = RecordCodecBuilder.create(i -> i.group(
             ResourceLocation.CODEC.fieldOf("id").forGetter(StructureDef::id),
             ResourceKey.codec(Registries.DIMENSION).fieldOf("dimension").forGetter(StructureDef::dimension),
+            RegistryCodecs.homogeneousList(Registries.BIOME).fieldOf("biomes").forGetter(StructureDef::biomes),
             ResourceLocation.CODEC.fieldOf("start_pool").forGetter(StructureDef::startPool),
             ResourceLocation.CODEC.fieldOf("fallback_pool").forGetter(StructureDef::fallbackPool),
             Codec.INT.fieldOf("soft_radius_chunks").forGetter(StructureDef::softRadiusChunks),

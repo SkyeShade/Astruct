@@ -16,11 +16,11 @@ public final class ProximityPlanner {
 
     private static final Map<ResourceLocation, Integer> COOLDOWN_TICKS = new HashMap<>();
     private static final int SCAN_INTERVAL_TICKS = 60;
-    private static final int DEF_COOLDOWN_TICKS  = 60;
+    private static final int DEF_COOLDOWN_TICKS = 60;
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent e) {
-        if(e.phase == TickEvent.Phase.START) {
+        if (e.phase == TickEvent.Phase.START) {
             return;
         }
         var server = e.getServer();
@@ -36,22 +36,22 @@ public final class ProximityPlanner {
             }
 
             boolean sawTargetLevel = false;
-            boolean scheduledAny   = false;
+            boolean scheduledAny = false;
 
             for (var level : server.getAllLevels()) {
                 if (level.dimension() != def.dimension()) continue;
                 sawTargetLevel = true;
 
-                var wd      = AstructWorldData.get(level);
+                var wd = AstructWorldData.get(level);
                 var players = level.players();
                 if (players.isEmpty()) continue;
 
                 final int spacing = def.spacing();
-                final int y       = StructureDef.GenY.resolveGenY(level, def);
+                final int y = StructureDef.GenY.resolveGenY(level, def);
 
 
                 final int grace = Math.max(4, def.planHorizonChunks()) * 16
-                        + Math.max(4, def.softRadiusChunks())  * 16
+                        + Math.max(4, def.softRadiusChunks()) * 16
                         + 128;
 
                 for (var p : players) {
@@ -68,13 +68,20 @@ public final class ProximityPlanner {
 
                     for (int cx = minCx; cx <= maxCx; cx++) {
                         for (int cz = minCz; cz <= maxCz; cz++) {
-                            if (wd.isPlannedCell(def.id(), cx, cz) || wd.isPlanningCell(def.id(), cx, cz)) continue;
+                            if (wd.isPlannedCell(def.id(), cx, cz)
+                                    || wd.isPlanningCell(def.id(), cx, cz)
+                                    || wd.isInvalidBiomeCell(def.id(), cx, cz)) {
+                                continue;
+                            }
 
                             var center = CenterLocator.centerForCell(
                                     level.dimension(), level.getSeed(), spacing, cx, cz, y, def.id());
 
                             if (!center.closerThan(here, grace)) continue;
 
+                            if (def.biomes().size() != 0 && !def.biomes().contains(level.getBiome(center))) {
+                                wd.setInvalidBiomeCell(def.id(), cx, cz, true);
+                            }
 
                             wd.setPlanningCell(def.id(), cx, cz, true);
                             StructureManager.planStructure(level, def.id(), cx, cz);

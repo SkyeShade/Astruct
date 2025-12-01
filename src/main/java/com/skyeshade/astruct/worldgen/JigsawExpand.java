@@ -36,7 +36,6 @@ public final class JigsawExpand {
         var templateMgr  = level.getStructureManager();
         long seed        = level.getSeed();
         ChunkPos chunkPos = new ChunkPos(startPos);
-        LevelHeightAccessor height = level;
         Predicate<Holder<Biome>> validBiome = b -> true;
 
         var ctx = new Structure.GenerationContext(
@@ -47,7 +46,7 @@ public final class JigsawExpand {
                 templateMgr,
                 seed,
                 chunkPos,
-                height,
+                level,
                 validBiome
         );
 

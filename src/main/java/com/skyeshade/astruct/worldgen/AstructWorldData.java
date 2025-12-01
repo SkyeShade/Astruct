@@ -25,6 +25,9 @@ public final class AstructWorldData extends SavedData {
     private final Object2ObjectOpenHashMap<ResourceLocation, Long2ObjectOpenHashMap<BlockPos>> centersByStructure = new Object2ObjectOpenHashMap<>();
 
 
+    private final Object2ObjectOpenHashMap<ResourceLocation, LongOpenHashSet> invalidBiomeCells = new Object2ObjectOpenHashMap<>();
+
+
     private final Object2ObjectOpenHashMap<ResourceLocation, LongOpenHashSet> plannedCells = new Object2ObjectOpenHashMap<>();
 
 
@@ -42,7 +45,17 @@ public final class AstructWorldData extends SavedData {
 
     public AstructWorldData() {}
 
+    public boolean isInvalidBiomeCell(ResourceLocation structureId, int cx, int cz) {
+        var set = invalidBiomeCells.get(structureId);
+        return set != null && set.contains(cellKey(cx, cz));
+    }
 
+    public void setInvalidBiomeCell(ResourceLocation structureId, int cx, int cz, boolean invalid) {
+        var set = invalidBiomeCells.computeIfAbsent(structureId, __ -> new LongOpenHashSet());
+        long k = cellKey(cx, cz);
+        if (invalid) set.add(k); else set.remove(k);
+        setDirty();
+    }
 
     public boolean isPlannedCell(ResourceLocation structureId, int cx, int cz) {
         var set = plannedCells.get(structureId);
@@ -144,6 +157,18 @@ public final class AstructWorldData extends SavedData {
             d.plannedCells.put(legacy, new LongOpenHashSet(tag.getLongArray("plannedCells")));
         }
 
+        if (tag.contains("invalidBiomeCellsByStructure", Tag.TAG_COMPOUND)) {
+            CompoundTag root = tag.getCompound("invalidBiomeCellsByStructure");
+            for (String structureKey : root.getAllKeys()) {
+                ResourceLocation structureId = ResourceLocation.parse(structureKey);
+                var set = new LongOpenHashSet(root.getLongArray(structureKey));
+                d.invalidBiomeCells.put(structureId, set);
+            }
+        } else if (tag.contains("invalidBiomeCells", Tag.TAG_LONG_ARRAY)) {
+            ResourceLocation legacy = ResourceLocation.parse("astruct:_legacy");
+            d.invalidBiomeCells.put(legacy, new LongOpenHashSet(tag.getLongArray("invalidBiomeCells")));
+        }
+
         return d;
     }
 
@@ -172,6 +197,12 @@ public final class AstructWorldData extends SavedData {
         plannedCells.forEach((structureId, set) -> plannedRoot.put(structureId.toString(),
                 new LongArrayTag(set.toLongArray())));
         tag.put("plannedCellsByStructure", plannedRoot);
+
+
+        CompoundTag invalidBiomeRoot = new CompoundTag();
+        invalidBiomeCells.forEach((structureId, set) -> invalidBiomeRoot.put(structureId.toString(),
+                new LongArrayTag(set.toLongArray())));
+        tag.put("invalidBiomeCellsByStructure", plannedRoot);
 
         return tag;
     }
