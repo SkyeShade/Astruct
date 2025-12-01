@@ -4,7 +4,6 @@ import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -43,13 +42,12 @@ public final class ProximityPlanner {
                 if (level.dimension() != def.dimension()) continue;
                 sawTargetLevel = true;
 
-                var sl      = (ServerLevel) level;
-                var wd      = AstructWorldData.get(sl);
-                var players = sl.players();
+                var wd      = AstructWorldData.get(level);
+                var players = level.players();
                 if (players.isEmpty()) continue;
 
                 final int spacing = def.spacing();
-                final int y       = resolveGenY(sl, def);
+                final int y       = StructureDef.GenY.resolveGenY(level, def);
 
 
                 final int grace = Math.max(4, def.planHorizonChunks()) * 16
@@ -60,7 +58,7 @@ public final class ProximityPlanner {
                     var here = p.blockPosition();
 
 
-                    wd.ensureCentersAround(sl, def, here, grace, y);
+                    wd.ensureCentersAround(level, def, here, grace, y);
 
                     int minCx = CenterLocator.cellOf(here.getX() - grace, spacing);
                     int maxCx = CenterLocator.cellOf(here.getX() + grace, spacing);
@@ -73,13 +71,13 @@ public final class ProximityPlanner {
                             if (wd.isPlannedCell(def.id(), cx, cz) || wd.isPlanningCell(def.id(), cx, cz)) continue;
 
                             var center = CenterLocator.centerForCell(
-                                    sl.dimension(), sl.getSeed(), spacing, cx, cz, y, def.id());
+                                    level.dimension(), level.getSeed(), spacing, cx, cz, y, def.id());
 
                             if (!center.closerThan(here, grace)) continue;
 
 
                             wd.setPlanningCell(def.id(), cx, cz, true);
-                            StructureManager.planStructure(sl, def.id(), cx, cz);
+                            StructureManager.planStructure(level, def.id(), cx, cz);
 
                             ALog.debug("[Proximity] scheduled plan def={} cell[{},{}] center={} player={}",
                                     def.id(), cx, cz, center, p.getGameProfile().getName());
@@ -103,14 +101,4 @@ public final class ProximityPlanner {
         }
     }
 
-    private static int resolveGenY(ServerLevel level, StructureDef def) {
-        var g = def.genY();
-        int min = level.getMinBuildHeight();
-        return switch (g.mode()) {
-            case "fixed"    -> g.value();
-            case "world_y"  -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + g.value(), min);
-            default         -> Math.max(min + 122, min);
-        };
-    }
 }

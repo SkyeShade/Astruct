@@ -26,9 +26,9 @@ public final class Preplanner {
 
             int min = level.getMinBuildHeight();
             int y = switch (def.genY().mode()) {
-                case "fixed"    -> def.genY().value();
-                case "world_y"  -> Math.max(min, level.getSeaLevel());
-                case "min_plus" -> Math.max(min + def.genY().value(), min);
+                case StructureDef.GenY.FIXED    -> def.genY().value();
+                case StructureDef.GenY.WORLD_Y  -> Math.max(min, level.getSeaLevel());
+                case StructureDef.GenY.MIN_PLUS -> Math.max(min + def.genY().value(), min);
                 default         -> Math.max(min + 122, min);
             };
 

@@ -85,16 +85,16 @@ public final class Planner {
     }
 
 
-
     private int resolveGenY() {
         var g = def.genY();
-        String mode = g == null || g.mode() == null ? "min_plus" : g.mode();
+        String mode = g == null || g.mode() == null ? StructureDef.GenY.MIN_PLUS : g.mode();
         int min = level.getMinBuildHeight();
 
         return switch (mode) {
-            case "fixed"   -> g.value();
-            case "world_y" -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + g.value(), min);
+            case StructureDef.GenY.FIXED   -> g.value();
+            case StructureDef.GenY.WORLD_Y -> Math.max(min, level.getSeaLevel());
+            case StructureDef.GenY.MIN_PLUS -> Math.max(min + g.value(), min);
+            case StructureDef.GenY.SURFACE -> Math.max(StructureDef.GenY.getSurfaceBlockY(level, cx, cz) + g.value(), min);
             default        -> Math.max(min + g.value(), min);
         };
     }
