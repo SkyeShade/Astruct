@@ -25,15 +25,10 @@ public final class Preplanner {
                 continue;
             }
 
-            int min = level.getMinBuildHeight();
-            int y = switch (def.genY().mode()) {
-                case "fixed"    -> def.genY().value();
-                case "world_y"  -> Math.max(min, level.getSeaLevel());
-                case "min_plus" -> Math.max(min + def.genY().value(), min);
-                default         -> Math.max(min + 122, min);
-            };
-
             BlockPos spawn = level.getSharedSpawnPos();
+            int y = StructureDef.GenY.resolveGenY(level, def, spawn.getX(), spawn.getZ());
+
+
             int radius = graceRadiusBlocks(def);
 
             AstructWorldData.get(level).ensureCentersAround(level, def, spawn, radius, y);

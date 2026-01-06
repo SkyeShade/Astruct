@@ -20,6 +20,13 @@ public final class CenterLocator {
         return (double) (bits >>> 11) * 0x1.0p-53;
     }
 
+    public static int centerX(int cx, int spacing) {
+        return cx * spacing + spacing / 2;
+    }
+
+    public static int centerZ(int cz, int spacing) {
+        return cz * spacing + spacing / 2;
+    }
 
     public static BlockPos centerForCell(ResourceKey<Level> dim, long worldSeed,
                                          int spacing, int cx, int cz, int y,

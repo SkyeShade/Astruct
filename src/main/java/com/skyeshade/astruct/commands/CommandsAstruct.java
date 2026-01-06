@@ -8,6 +8,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.skyeshade.astruct.worldgen.AstructDefs;
 import com.skyeshade.astruct.worldgen.AstructWorldData;
+import com.skyeshade.astruct.worldgen.CenterLocator;
 import com.skyeshade.astruct.worldgen.StructureDef;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -103,22 +104,35 @@ public final class CommandsAstruct {
         double bestD2 = Double.MAX_VALUE;
 
         for (StructureDef def : candidates) {
-            int y = resolveGenY(here, def);
-
 
             AstructWorldData data = AstructWorldData.get(here);
-            data.ensureCentersAround(here, def, playerPos, radius, y);
+            data.ensureCentersAround(here, def, playerPos, radius, 0);
 
             var centersMap = data.centersView().get(def.id());
             if (centersMap == null || centersMap.isEmpty()) continue;
 
             for (BlockPos c : centersMap.values()) {
                 if (!c.closerThan(playerPos, radius)) continue;
+
+                int cx = CenterLocator.cellOf(c.getX(), def.spacing());
+                int cz = CenterLocator.cellOf(c.getZ(), def.spacing());
+
+
+                if (data.isInvalidBiomeCell(def.id(), cx, cz)) continue;
+
                 double dx = (c.getX() + 0.5) - src.getPosition().x;
                 double dz = (c.getZ() + 0.5) - src.getPosition().z;
                 double d2 = dx * dx + dz * dz;
-                if (d2 < bestD2) { bestD2 = d2; bestPos = c; bestDef = def; }
+
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    bestPos = c;
+                    bestDef = def;
+                }
             }
+            int finalY = StructureDef.GenY.resolveGenY(here, bestDef, bestPos.getX(), bestPos.getZ());
+            bestPos = new BlockPos(bestPos.getX(), finalY, bestPos.getZ());
+
         }
 
         if (bestPos == null) {
@@ -141,15 +155,7 @@ public final class CommandsAstruct {
         return 1;
     }
 
-    private static int resolveGenY(ServerLevel level, StructureDef def) {
-        int min = level.getMinBuildHeight();
-        return switch (def.genY().mode()) {
-            case "fixed"    -> def.genY().value();
-            case "world_y"  -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + def.genY().value(), min);
-            default         -> Math.max(min + 122, min);
-        };
-    }
+
 
     private static MutableComponent clickableCoords(BlockPos pos) {
         String tpCmd = "/tp @s %d %d %d".formatted(pos.getX(), pos.getY(), pos.getZ());
