@@ -69,13 +69,22 @@ public final class Planner {
 
     /** Start the async expansion + main-thread enqueue. */
     public void startAsync() {
+
+        int spacing = def.spacing();
+        int y = StructureDef.GenY.resolveGenY(
+                level,
+                def,
+                CenterLocator.centerX(cx, spacing),
+                CenterLocator.centerZ(cz, spacing)
+        );
+
         AstructWorldData.get(level).setPlanningCell(def.id(), cx, cz, true);
 
         ALog.debug("[Astruct/Planner] started async plan for {} cell[{},{}] (spacing={})",
                 def.id(), cx, cz, def.spacing());
 
         CompletableFuture
-                .supplyAsync(this::doExpandOffThread)
+                .supplyAsync(() -> doExpandOffThread(y))
                 .thenAcceptAsync(this::finishOnMainThread, level.getServer())
                 .exceptionally(ex -> {
                     AstructWorldData.get(level).setPlanningCell(def.id(), cx, cz, false);
@@ -86,29 +95,16 @@ public final class Planner {
 
 
 
-    private int resolveGenY() {
-        var g = def.genY();
-        String mode = g == null || g.mode() == null ? "min_plus" : g.mode();
-        int min = level.getMinBuildHeight();
 
-        return switch (mode) {
-            case "fixed"   -> g.value();
-            case "world_y" -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + g.value(), min);
-            default        -> Math.max(min + g.value(), min);
-        };
-    }
 
 
     private record ExpandResult(List<PoolElementStructurePiece> pieces, BlockPos center) {}
 
     /** Off-thread: compute center + run jigsaw expansion. */
-    private ExpandResult doExpandOffThread() {
+    private ExpandResult doExpandOffThread(int y) {
         final long t0 = System.nanoTime();
 
-        int y       = resolveGenY();
         int spacing = def.spacing();
-
 
         BlockPos center = CenterLocator.centerForCell(
                 level.dimension(), level.getSeed(), spacing, cx, cz, y, def.id());

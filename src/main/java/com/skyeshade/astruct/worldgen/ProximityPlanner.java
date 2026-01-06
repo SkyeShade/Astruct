@@ -3,8 +3,11 @@ package com.skyeshade.astruct.worldgen;
 import com.skyeshade.astruct.ALog;
 import com.skyeshade.astruct.Astruct;
 
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.biome.Biome;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -46,7 +49,8 @@ public final class ProximityPlanner {
                 if (players.isEmpty()) continue;
 
                 final int spacing = def.spacing();
-                final int y       = resolveGenY(sl, def);
+
+
 
 
                 final int grace = Math.max(4, def.planHorizonChunks()) * 16
@@ -56,7 +60,7 @@ public final class ProximityPlanner {
                 for (var p : players) {
                     var here = p.blockPosition();
 
-
+                    int y = StructureDef.GenY.resolveGenY(level, def, here.getX(), here.getZ());
                     wd.ensureCentersAround(sl, def, here, grace, y);
 
                     int minCx = CenterLocator.cellOf(here.getX() - grace, spacing);
@@ -67,12 +71,28 @@ public final class ProximityPlanner {
 
                     for (int cx = minCx; cx <= maxCx; cx++) {
                         for (int cz = minCz; cz <= maxCz; cz++) {
-                            if (wd.isPlannedCell(def.id(), cx, cz) || wd.isPlanningCell(def.id(), cx, cz)) continue;
+                            if (wd.isPlannedCell(def.id(), cx, cz) || wd.isPlanningCell(def.id(), cx, cz) || wd.isInvalidBiomeCell(def.id(), cx, cz)) continue;
 
                             var center = CenterLocator.centerForCell(
                                     sl.dimension(), sl.getSeed(), spacing, cx, cz, y, def.id());
 
                             if (!center.closerThan(here, grace)) continue;
+                            if (!def.biomes().isEmpty()) {
+
+                                Holder<Biome> biomeAt = level.getBiome(center);
+
+                                // Resolve biome ID
+                                ResourceLocation biomeId = level.registryAccess()
+                                        .registryOrThrow(Registries.BIOME)
+                                        .getKey(biomeAt.value());
+
+                                if (biomeId == null || !def.biomes().contains(biomeId)) {
+                                    wd.setInvalidBiomeCell(def.id(), cx, cz, true);
+                                    continue;
+                                }
+                            }
+
+
 
 
                             wd.setPlanningCell(def.id(), cx, cz, true);

@@ -21,6 +21,8 @@ import java.util.Map;
 public final class AstructWorldData extends SavedData {
     private static final String NAME = "astruct_world";
 
+    private final Object2ObjectOpenHashMap<ResourceLocation, LongOpenHashSet> invalidBiomeCells =
+            new Object2ObjectOpenHashMap<>();
 
     private final Object2ObjectOpenHashMap<ResourceLocation, Long2ObjectOpenHashMap<BlockPos>> centersByStructure = new Object2ObjectOpenHashMap<>();
 
@@ -41,6 +43,17 @@ public final class AstructWorldData extends SavedData {
 
     public AstructWorldData() {}
 
+    public boolean isInvalidBiomeCell(ResourceLocation structureId, int cx, int cz) {
+        var set = invalidBiomeCells.get(structureId);
+        return set != null && set.contains(cellKey(cx, cz));
+    }
+
+    public void setInvalidBiomeCell(ResourceLocation structureId, int cx, int cz, boolean invalid) {
+        var set = invalidBiomeCells.computeIfAbsent(structureId, __ -> new LongOpenHashSet());
+        long k = cellKey(cx, cz);
+        if (invalid) set.add(k); else set.remove(k);
+        setDirty();
+    }
 
 
     public boolean isPlannedCell(ResourceLocation structureId, int cx, int cz) {
@@ -102,6 +115,14 @@ public final class AstructWorldData extends SavedData {
     public static AstructWorldData load(CompoundTag tag) {
         AstructWorldData d = new AstructWorldData();
 
+        if (tag.contains("invalidBiomeCellsByStructure", Tag.TAG_COMPOUND)) {
+            CompoundTag root = tag.getCompound("invalidBiomeCellsByStructure");
+            for (String structureKey : root.getAllKeys()) {
+                ResourceLocation structureId = ResourceLocation.parse(structureKey);
+                var set = new LongOpenHashSet(root.getLongArray(structureKey));
+                d.invalidBiomeCells.put(structureId, set);
+            }
+        }
 
         if (tag.contains("centersByStructure", Tag.TAG_COMPOUND)) {
             CompoundTag root = tag.getCompound("centersByStructure");
@@ -148,6 +169,10 @@ public final class AstructWorldData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+        CompoundTag invalidBiomeRoot = new CompoundTag();
+        invalidBiomeCells.forEach((structureId, set) ->
+                invalidBiomeRoot.put(structureId.toString(), new LongArrayTag(set.toLongArray())));
+        tag.put("invalidBiomeCellsByStructure", invalidBiomeRoot); // ✅
 
         CompoundTag centersRoot = new CompoundTag();
         centersByStructure.forEach((structureId, map) -> {
