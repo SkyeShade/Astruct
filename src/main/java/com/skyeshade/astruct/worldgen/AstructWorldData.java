@@ -5,7 +5,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
@@ -13,6 +12,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Map;
@@ -25,6 +25,9 @@ public final class AstructWorldData extends SavedData {
     private final Object2ObjectOpenHashMap<ResourceLocation, Long2ObjectOpenHashMap<BlockPos>> centersByStructure = new Object2ObjectOpenHashMap<>();
 
 
+    private final Object2ObjectOpenHashMap<ResourceLocation, LongOpenHashSet> invalidBiomeCells = new Object2ObjectOpenHashMap<>();
+
+
     private final Object2ObjectOpenHashMap<ResourceLocation, LongOpenHashSet> plannedCells = new Object2ObjectOpenHashMap<>();
 
 
@@ -34,14 +37,25 @@ public final class AstructWorldData extends SavedData {
 
     public static AstructWorldData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
-                new Factory<>(AstructWorldData::new, (tag, prov) -> AstructWorldData.load(tag)),
+                AstructWorldData::load,
+                AstructWorldData::new,
                 NAME
         );
     }
 
     public AstructWorldData() {}
 
+    public boolean isInvalidBiomeCell(ResourceLocation structureId, int cx, int cz) {
+        var set = invalidBiomeCells.get(structureId);
+        return set != null && set.contains(cellKey(cx, cz));
+    }
 
+    public void setInvalidBiomeCell(ResourceLocation structureId, int cx, int cz, boolean invalid) {
+        var set = invalidBiomeCells.computeIfAbsent(structureId, __ -> new LongOpenHashSet());
+        long k = cellKey(cx, cz);
+        if (invalid) set.add(k); else set.remove(k);
+        setDirty();
+    }
 
     public boolean isPlannedCell(ResourceLocation structureId, int cx, int cz) {
         var set = plannedCells.get(structureId);
@@ -143,11 +157,23 @@ public final class AstructWorldData extends SavedData {
             d.plannedCells.put(legacy, new LongOpenHashSet(tag.getLongArray("plannedCells")));
         }
 
+        if (tag.contains("invalidBiomeCellsByStructure", Tag.TAG_COMPOUND)) {
+            CompoundTag root = tag.getCompound("invalidBiomeCellsByStructure");
+            for (String structureKey : root.getAllKeys()) {
+                ResourceLocation structureId = ResourceLocation.parse(structureKey);
+                var set = new LongOpenHashSet(root.getLongArray(structureKey));
+                d.invalidBiomeCells.put(structureId, set);
+            }
+        } else if (tag.contains("invalidBiomeCells", Tag.TAG_LONG_ARRAY)) {
+            ResourceLocation legacy = ResourceLocation.parse("astruct:_legacy");
+            d.invalidBiomeCells.put(legacy, new LongOpenHashSet(tag.getLongArray("invalidBiomeCells")));
+        }
+
         return d;
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+    public @NotNull CompoundTag save(CompoundTag tag) {
 
         CompoundTag centersRoot = new CompoundTag();
         centersByStructure.forEach((structureId, map) -> {
@@ -171,6 +197,12 @@ public final class AstructWorldData extends SavedData {
         plannedCells.forEach((structureId, set) -> plannedRoot.put(structureId.toString(),
                 new LongArrayTag(set.toLongArray())));
         tag.put("plannedCellsByStructure", plannedRoot);
+
+
+        CompoundTag invalidBiomeRoot = new CompoundTag();
+        invalidBiomeCells.forEach((structureId, set) -> invalidBiomeRoot.put(structureId.toString(),
+                new LongArrayTag(set.toLongArray())));
+        tag.put("invalidBiomeCellsByStructure", plannedRoot);
 
         return tag;
     }

@@ -1,6 +1,5 @@
 package com.skyeshade.astruct.worldgen;
 
-import com.mojang.logging.LogUtils;
 import com.skyeshade.astruct.ALog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -17,7 +16,6 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
-import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -27,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 
 public final class Planner {
 
-
     private final ServerLevel level;
     private final StructureDef def;
     private final Holder<StructureTemplatePool> startPool;
@@ -36,9 +33,9 @@ public final class Planner {
 
     public Planner(ServerLevel level, StructureDef def, int cx, int cz) {
         this.level = level;
-        this.def   = def;
-        this.cx    = cx;
-        this.cz    = cz;
+        this.def = def;
+        this.cx = cx;
+        this.cz = cz;
 
 
         var pools = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL);
@@ -57,7 +54,11 @@ public final class Planner {
             if (ct.contains("element_type", Tag.TAG_STRING)) {
 
                 String type = ct.getString("element_type");
-                if (!"minecraft:single_pool_element".equals(type)) return null;
+                if (!("minecraft:single_pool_element".equals(type)
+//                        || "minecraft:legacy_single_pool_element".equals(type) FIXME
+                )) {
+                    return null;
+                }
             }
             if (ct.contains("location", Tag.TAG_STRING)) {
                 String loc = ct.getString("location");
@@ -67,7 +68,9 @@ public final class Planner {
         return null;
     }
 
-    /** Start the async expansion + main-thread enqueue. */
+    /**
+     * Start the async expansion + main-thread enqueue.
+     */
     public void startAsync() {
         AstructWorldData.get(level).setPlanningCell(def.id(), cx, cz, true);
 
@@ -85,37 +88,41 @@ public final class Planner {
     }
 
 
-
     private int resolveGenY() {
         var g = def.genY();
-        String mode = g == null || g.mode() == null ? "min_plus" : g.mode();
+        String mode = g == null || g.mode() == null ? StructureDef.GenY.MIN_PLUS : g.mode();
         int min = level.getMinBuildHeight();
 
         return switch (mode) {
-            case "fixed"   -> g.value();
-            case "world_y" -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + g.value(), min);
-            default        -> Math.max(min + g.value(), min);
+            case StructureDef.GenY.FIXED -> g.value();
+            case StructureDef.GenY.WORLD_Y -> Math.max(min, level.getSeaLevel());
+            case StructureDef.GenY.MIN_PLUS -> Math.max(min + g.value(), min);
+            case StructureDef.GenY.SURFACE ->
+                    Math.max(StructureDef.GenY.getSurfaceBlockY(level, cx, cz) + g.value(), min);
+            default -> Math.max(min + g.value(), min);
         };
     }
 
 
-    private record ExpandResult(List<PoolElementStructurePiece> pieces, BlockPos center) {}
+    private record ExpandResult(List<PoolElementStructurePiece> pieces, BlockPos center) {
+    }
 
-    /** Off-thread: compute center + run jigsaw expansion. */
+    /**
+     * Off-thread: compute center + run jigsaw expansion.
+     */
     private ExpandResult doExpandOffThread() {
         final long t0 = System.nanoTime();
 
-        int y       = resolveGenY();
+        int y = resolveGenY();
         int spacing = def.spacing();
 
 
         BlockPos center = CenterLocator.centerForCell(
                 level.dimension(), level.getSeed(), spacing, cx, cz, y, def.id());
 
-        int depth   = Mth.clamp(def.budgets().maxSteps(), 1, 32);
+        int depth = Mth.clamp(def.budgets().maxSteps(), 1, 32);
         int maxDist = def.softRadiusChunks() > 0 ? def.softRadiusChunks() * 16 : 128;
-        maxDist     = Mth.clamp(maxDist, 64, 256);
+        maxDist = Mth.clamp(maxDist, 64, 256);
 
         ALog.debug("[Astruct/Planner] expand: def={} cell[{},{}] center={} depth={} maxDist={} startPool={}",
                 def.id(), cx, cz, center, depth, maxDist, def.startPool());
@@ -136,11 +143,9 @@ public final class Planner {
     }
 
 
-
-
-
-
-    /** Main-thread: persist center, enqueue placement steps, wake any touching loaded chunks. */
+    /**
+     * Main-thread: persist center, enqueue placement steps, wake any touching loaded chunks.
+     */
     private void finishOnMainThread(ExpandResult res) {
         int spacing = def.spacing();
 
@@ -160,7 +165,7 @@ public final class Planner {
                 continue;
             }
 
-            var bb   = p.getBoundingBox();
+            var bb = p.getBoundingBox();
             var cmin = new ChunkPos(bb.minX() >> 4, bb.minZ() >> 4);
             var cmax = new ChunkPos(bb.maxX() >> 4, bb.maxZ() >> 4);
 
@@ -169,7 +174,7 @@ public final class Planner {
                 for (int z = cmin.z; z <= cmax.z; z++)
                     req.add(ChunkPos.asLong(x, z));
 
-            var id   = UUID.randomUUID();
+            var id = UUID.randomUUID();
             var step = new PlacementStep(tplId, p.getPosition(), req, p.getRotation(), Mirror.NONE);
             pd.add(id, step);
             enq++;
@@ -191,7 +196,7 @@ public final class Planner {
         wd.setPlannedCell(def.id(), cx, cz, enq > 0);
 
         var pdata = StructurePlanData.get(level);
-        int horizon  = Math.max(4, def.planHorizonChunks());
+        int horizon = Math.max(4, def.planHorizonChunks());
         int maxSteps = Math.max(64, def.budgets().maxSteps());
         pdata.put(def.id(), new StructurePlanData.PlanSummary(horizon, Math.min(maxSteps, res.pieces().size())));
     }

@@ -20,6 +20,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -65,12 +66,7 @@ public final class CommandsAstruct {
     private static int doLocateVanillaStyle(CommandSourceStack src,
                                             ResourceLocation structureIdOrNull,
                                             int radius) {
-        ServerLevel here = (ServerLevel) src.getLevel();
-        if (here == null) {
-            src.sendFailure(Component.literal("[Astruct] No level available."));
-            return 0;
-        }
-
+        ServerLevel here = src.getLevel();
 
         java.util.List<StructureDef> candidates = new java.util.ArrayList<>();
         if (structureIdOrNull != null) {
@@ -103,7 +99,7 @@ public final class CommandsAstruct {
         double bestD2 = Double.MAX_VALUE;
 
         for (StructureDef def : candidates) {
-            int y = resolveGenY(here, def);
+            int y = StructureDef.GenY.resolveGenY(here, def);
 
 
             AstructWorldData data = AstructWorldData.get(here);
@@ -126,6 +122,10 @@ public final class CommandsAstruct {
             return 1;
         }
 
+        if(Objects.equals(bestDef.genY().mode(), StructureDef.GenY.SURFACE)) {
+            bestPos = bestPos.atY(StructureDef.GenY.getSurfaceBlockY(here, bestPos.getX(), bestPos.getZ()));
+        }
+
         int dist = (int) Math.round(Math.sqrt(bestD2));
         StructureDef finalBestDef = bestDef;
         BlockPos finalBestPos = bestPos;
@@ -139,16 +139,6 @@ public final class CommandsAstruct {
                 false
         );
         return 1;
-    }
-
-    private static int resolveGenY(ServerLevel level, StructureDef def) {
-        int min = level.getMinBuildHeight();
-        return switch (def.genY().mode()) {
-            case "fixed"    -> def.genY().value();
-            case "world_y"  -> Math.max(min, level.getSeaLevel());
-            case "min_plus" -> Math.max(min + def.genY().value(), min);
-            default         -> Math.max(min + 122, min);
-        };
     }
 
     private static MutableComponent clickableCoords(BlockPos pos) {
