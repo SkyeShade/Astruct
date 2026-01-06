@@ -33,7 +33,7 @@ Place JSON files at:
 data/<namespace>/worldgen/async_structure/<id>.json
 ```
 
-**Example**
+### Example
 
 ```json
 {
@@ -50,15 +50,69 @@ data/<namespace>/worldgen/async_structure/<id>.json
     "max_open_connectors": 128
   },
 
-  "gen_y": { "mode": "min_plus", "value": 60 },
+  "gen_y": { "mode": "surface", "value": 0 },
 
-  "spacing": 2048,
-
-  "piece_rules": {
-    "deny_overlap_tile_entities": true
-  }
+  "spacing": 2048
 }
 ```
+
+---
+
+## Field reference
+
+* `id`  
+  Unique structure ID (should match the file path key).
+
+* `dimension`  
+  Target dimension key (e.g. `minecraft:the_nether`).
+
+* `start_pool`  
+  Template pool to start expansion from.
+
+* `fallback_pool`  
+  Pool used to cap dead-ends (end pieces).
+
+* `soft_radius_chunks`  
+  Max distance budget (in chunks) from the center during expansion.
+
+* `plan_horizon_chunks`  
+  How far ahead (in chunks) the planner prepares around players.
+
+* `budgets.max_steps`  
+  Upper bound on jigsaw pieces per plan.
+
+* `budgets.max_open_connectors`  
+  Safety limit for outstanding connectors.
+
+* `gen_y`  
+  Controls how the final Y coordinate is chosen.  
+  **Y is resolved late, at the final structure position.**
+
+  Supported modes:
+
+    * `"fixed"`  
+      Always use `value` as the Y level.
+
+    * `"min_plus"`  
+      `min_build_height + value`.
+
+    * `"world_y"`  
+      World sea level.
+
+    * `"surface"`  
+      Terrain surface at the structure’s X/Z position  
+      (plus optional offset via `value`).
+
+  Example:
+  ```json
+  "gen_y": { "mode": "surface", "value": 0 }
+  ```
+
+* `spacing`  
+  Cell size in *blocks* (effective density control).
+
+---
+
 
 ### Field reference
 
