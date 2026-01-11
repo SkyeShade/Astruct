@@ -177,7 +177,6 @@ Astruct plugs into the vanilla **`/locate`** root:
 
 ## Roadmap
 
-* Optional biome predicates for expansion.
 * Per-structure placement throttles.
 * In-game visualization for planned cells.
 * Integration under `/locate structure`.
